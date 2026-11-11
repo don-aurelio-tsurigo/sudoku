@@ -1,0 +1,6 @@
+name = "sudoku"
+compatibility_date = "2026-09-01"
+
+# Reine statische Seite: kein Worker-Code, Cloudflare liefert public/ direkt aus.
+[assets]
+directory = "./public"

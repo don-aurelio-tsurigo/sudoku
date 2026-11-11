@@ -1,0 +1,289 @@
+/* Sudoku – Look angelehnt ans Worträtsel (Raetsel/public/static/game.css) */
+
+@font-face {
+  font-family: "Space Grotesk";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 300 700;
+  src: url("fonts/space-grotesk-latin-wght.woff2") format("woff2-variations"),
+       url("fonts/space-grotesk-latin-wght.woff2") format("woff2");
+}
+
+:root {
+  --bg: #ffffff;
+  --ink: #1a1a1b;
+  --muted: #6b6656;
+  --soft: #f7f4ec;          /* Beige-Fläche wie Hinweis-Box im Worträtsel */
+  --soft-line: #ece9df;
+  --line: #d3d6da;          /* dünne Linien zwischen Zellen */
+  --box-line: #1a1a1b;      /* dicke Linien zwischen 3x3-Blöcken */
+  --cell: #ffffff;
+  --key: #d3d6da;
+  --accent: #2f80ed;
+  --correct: #3aa76d;
+  --present: #f0a202;
+  --bad: #b3261e;
+  --peer: color-mix(in srgb, var(--accent) 7%, var(--cell));
+  --same: color-mix(in srgb, var(--accent) 20%, var(--cell));
+  --selected: color-mix(in srgb, var(--accent) 30%, var(--cell));
+  --modal: #ffffff;
+  --overlay: rgba(0, 0, 0, .5);
+  --shadow: 0 16px 48px rgba(0, 0, 0, .18);
+  --width: 460px;
+}
+
+[data-theme="dark"] {
+  --bg: #121213;
+  --ink: #ececec;
+  --muted: #a19c8c;
+  --soft: #1e1e20;
+  --soft-line: #2c2c2e;
+  --line: #3a3a3c;
+  --box-line: #8a8a8e;
+  --cell: #18181a;
+  --key: #3a3a3c;
+  --accent: #5b9bf0;
+  --correct: #4cbb7f;
+  --bad: #f2786d;
+  --modal: #1e1e20;
+  --overlay: rgba(0, 0, 0, .65);
+  --shadow: 0 16px 48px rgba(0, 0, 0, .5);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+button { -webkit-appearance: none; appearance: none; font: inherit; color: inherit; }
+
+html, body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Space Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
+  min-height: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ─── Layout ─── */
+.app {
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+  max-width: var(--width); margin: 0 auto; padding: 20px 12px 16px;
+}
+
+header.top {
+  width: 100%;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.logo { font-size: 22px; font-weight: 700; letter-spacing: -.01em; }
+.top-actions { display: flex; gap: 8px; align-items: center; }
+
+.icon-btn {
+  width: 38px; height: 38px; border-radius: 50%;
+  display: grid; place-items: center;
+  border: none; background: var(--soft); color: var(--ink); cursor: pointer;
+  transition: transform .1s ease, background .15s ease;
+}
+.icon-btn:hover { background: var(--soft-line); }
+.icon-btn:active { transform: scale(.92); }
+
+.pill-btn {
+  height: 38px; padding: 0 16px; border-radius: 999px; border: none; cursor: pointer;
+  background: var(--ink); color: var(--bg); font-weight: 600; font-size: 13.5px;
+  transition: transform .1s ease;
+}
+.pill-btn:active { transform: scale(.95); }
+
+/* ─── Statuszeile ─── */
+.hud {
+  width: 100%;
+  display: flex; justify-content: space-between;
+  padding: 10px 16px;
+  background: var(--soft); border-radius: 10px;
+  font-variant-numeric: tabular-nums;
+}
+.hud .stat { display: flex; flex-direction: column; align-items: center; gap: 1px; min-width: 56px; }
+.hud .label { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.hud .value { font-size: 16px; font-weight: 700; }
+#mistakes.hot { color: var(--bad); animation: pulse .4s ease; }
+@keyframes pulse { 0% { transform: scale(1.5); } 100% { transform: scale(1); } }
+
+/* ─── Spielfeld ─── */
+.board-wrap { width: 100%; }
+
+.board {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 2px;
+  aspect-ratio: 1;
+  padding: 2px;
+  background: var(--box-line);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.box {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--line);
+  min-width: 0; min-height: 0;
+}
+
+.cell {
+  position: relative;
+  display: grid; place-items: center;
+  min-width: 0; min-height: 0;
+  background: var(--cell);
+  font-size: clamp(20px, 6.4vw, 28px);
+  font-weight: 500;
+  color: var(--ink);
+  cursor: pointer;
+  user-select: none;
+  transition: background .12s ease;
+}
+.cell.dealt { animation: deal .35s ease both; }
+@keyframes deal { from { opacity: 0; transform: scale(.6); } to { opacity: 1; transform: scale(1); } }
+
+.cell.given { font-weight: 700; }
+.cell.user { color: var(--accent); font-weight: 600; }
+.cell.peer { background: var(--peer); }
+.cell.same { background: var(--same); }
+.cell.selected { background: var(--selected); box-shadow: inset 0 0 0 2px var(--accent); z-index: 1; }
+.cell.error { color: var(--bad) !important; }
+
+.cell.shake { animation: shake .35s; }
+@keyframes shake {
+  10%, 90% { transform: translateX(-1px); } 20%, 80% { transform: translateX(3px); }
+  30%, 50%, 70% { transform: translateX(-4px); } 40%, 60% { transform: translateX(4px); }
+}
+
+.cell .val { display: block; animation: pop .2s ease; }
+@keyframes pop { from { transform: scale(.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.cell.hinted { background: color-mix(in srgb, var(--present) 30%, var(--cell)); }
+
+/* Zeile/Spalte/Block fertig: kurz grün aufleuchten, wie «correct» im Worträtsel */
+.cell.wave { animation: wave .6s ease; }
+@keyframes wave {
+  0% { background: var(--cell); }
+  35% { background: var(--correct); color: #fff; }
+  100% { background: var(--cell); }
+}
+
+/* Notizen */
+.notes {
+  position: absolute; inset: 2px;
+  display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr);
+  pointer-events: none;
+}
+.notes i {
+  font-style: normal; display: grid; place-items: center;
+  font-size: clamp(8px, 2.3vw, 11px); font-weight: 500; color: var(--muted);
+}
+
+/* ─── Zahlentasten (wie Worträtsel-Tastatur) ─── */
+.pad {
+  width: 100%;
+  display: grid; grid-template-columns: repeat(9, 1fr); gap: 6px;
+}
+.key {
+  height: 52px; border: none; border-radius: 4px; cursor: pointer;
+  background: var(--key); color: var(--ink);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0;
+  font-size: 20px; font-weight: 600; line-height: 1.1;
+  user-select: none; transition: background .15s ease, opacity .2s ease;
+}
+.key:active { filter: brightness(.9); }
+.key .count { font-size: 10px; font-weight: 500; color: var(--muted); }
+.key.done { opacity: .3; pointer-events: none; }
+
+/* ─── Werkzeuge ─── */
+.toolbar {
+  width: 100%;
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;
+}
+.tool {
+  position: relative;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 8px 4px; border: none; border-radius: 8px; cursor: pointer;
+  background: var(--soft); color: var(--ink);
+  font-size: 12px; font-weight: 600;
+  transition: background .15s ease, color .15s ease;
+}
+.tool:hover { background: var(--soft-line); }
+.tool:active { transform: scale(.96); }
+.tool.active { background: var(--accent); color: #fff; }
+.tool .badge {
+  position: absolute; top: 4px; right: 6px;
+  font-size: 9px; font-weight: 700; letter-spacing: .04em;
+  background: #fff; color: var(--accent); border-radius: 999px; padding: 1px 5px;
+}
+
+/* ─── Dialoge ─── */
+.overlay {
+  position: fixed; inset: 0; z-index: 50;
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+  background: var(--overlay);
+  opacity: 0; visibility: hidden; pointer-events: none;
+  transition: opacity .2s ease, visibility 0s linear .2s;
+}
+.overlay.show { opacity: 1; visibility: visible; pointer-events: auto; transition: opacity .2s ease; }
+
+.modal {
+  background: var(--modal); color: var(--ink);
+  border-radius: 16px; padding: 30px 24px 22px; width: 100%; max-width: 340px; max-height: 88vh; overflow-y: auto;
+  text-align: center; box-shadow: var(--shadow);
+  transform: scale(.92); transition: transform .25s ease;
+}
+.overlay.show .modal { transform: scale(1); }
+.modal h2 { font-size: 22px; font-weight: 700; letter-spacing: -.01em; margin-bottom: 8px; }
+.modal-subtitle { font-size: 13.5px; color: var(--muted); margin-bottom: 20px; }
+
+.diff-grid { display: grid; gap: 8px; }
+.diff-btn {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 16px; border-radius: 12px; cursor: pointer;
+  border: 1px solid var(--soft-line); background: var(--soft); color: var(--ink);
+  font-size: 15px; font-weight: 600;
+  transition: border-color .15s ease, background .15s ease;
+}
+.diff-btn:hover { border-color: var(--accent); }
+.diff-btn .dots { color: var(--line); font-size: 11px; letter-spacing: .15em; }
+.diff-btn .dots b { color: var(--accent); }
+
+.link-btn {
+  margin-top: 14px; background: none; border: none; cursor: pointer;
+  color: var(--muted); font-size: 13px; text-decoration: underline;
+}
+
+.win-stats {
+  display: flex; justify-content: center; gap: 28px; margin: 4px 0 24px;
+  font-variant-numeric: tabular-nums;
+}
+.win-stats div { display: flex; flex-direction: column; gap: 2px; }
+.win-stats .label { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.win-stats .value { font-size: 24px; font-weight: 700; }
+
+.cta {
+  display: block; width: 100%; padding: 12px 18px; border: none; border-radius: 999px; cursor: pointer;
+  background: var(--accent); color: #fff; font-size: 15px; font-weight: 700;
+  transition: transform .1s ease;
+}
+.cta:active { transform: scale(.97); }
+
+#fx { position: fixed; inset: 0; z-index: 60; pointer-events: none; }
+
+/* ─── Klein ─── */
+@media (max-width: 480px) {
+  .app { padding: 10px 10px 10px; gap: 10px; }
+  .logo { font-size: 20px; }
+  .hud { padding: 8px 10px; }
+  .pad { gap: 4px; }
+  .key { height: 46px; font-size: 18px; }
+}
+@media (max-width: 360px) {
+  .key { height: 42px; font-size: 16px; }
+  .pill-btn { padding: 0 12px; font-size: 12.5px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}

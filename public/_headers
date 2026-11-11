@@ -1,0 +1,7 @@
+# Wer das Spiel per iframe einbetten darf.
+# Aktuell: alle. Zum Einschränken auf die eigene Seite z.B.:
+#   Content-Security-Policy: frame-ancestors 'self' https://tsri.ch https://*.tsri.ch
+/*
+  Content-Security-Policy: frame-ancestors *
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
