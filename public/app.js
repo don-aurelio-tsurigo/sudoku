@@ -28,13 +28,31 @@
   let cells = []; // 81 DOM nodes
 
   const DIFF_LABELS = { easy: 'Leicht', medium: 'Mittel', hard: 'Schwer', expert: 'Experte' };
-  const SAVE_KEY = 'sudoku-game-v1';
+  const SAVE_KEY = 'sudoku-game-v2';
+  const DAY_KEY = 'sudoku-day-v1'; // { date, difficulty }: welches Tagesrätsel gewählt wurde
+
+  /* ─── Sudoku des Tages: 4 Rätsel pro Tag, man wählt eines ─── */
+  const TZ = 'Europe/Zurich';
+  function today() {
+    return new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date()); // YYYY-MM-DD
+  }
+  function todayLabel() {
+    return new Intl.DateTimeFormat('de-CH', { timeZone: TZ, weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date());
+  }
+  function getLock() {
+    try { return JSON.parse(localStorage.getItem(DAY_KEY) || 'null'); } catch (e) { return null; }
+  }
+  function setLock(difficulty) {
+    try { localStorage.setItem(DAY_KEY, JSON.stringify({ date: today(), difficulty })); } catch (e) {}
+  }
 
   /* ─── Spielstand im Browser speichern ─── */
   function save() {
-    if (!state.grid || state.won) return;
+    if (!state.grid) return;
     try {
       localStorage.setItem(SAVE_KEY, JSON.stringify({
+        date: state.date,
+        won: state.won,
         difficulty: state.difficulty,
         puzzle: state.puzzle,
         solution: state.solution,
@@ -57,10 +75,11 @@
   function restore() {
     let d;
     try { d = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); } catch (e) { return false; }
-    if (!d || !DIFF_LABELS[d.difficulty] || !is9x9(d.puzzle) || !is9x9(d.solution) || !is9x9(d.grid) || !is9x9(d.notes)) {
+    if (!d || typeof d.date !== 'string' || !DIFF_LABELS[d.difficulty] || !is9x9(d.puzzle) || !is9x9(d.solution) || !is9x9(d.grid) || !is9x9(d.notes)) {
       clearSave();
       return false;
     }
+    state.date = d.date;
     state.difficulty = d.difficulty;
     state.puzzle = d.puzzle;
     state.solution = d.solution;
@@ -71,14 +90,14 @@
     state.mistakes = d.mistakes | 0;
     state.hintsLeft = Math.max(0, Math.min(3, d.hintsLeft | 0));
     state.seconds = d.seconds | 0;
-    state.won = false;
+    state.won = !!d.won;
     state.paused = false;
     state.history = [];
     state.completedUnits = new Set(d.completedUnits || []);
     refreshHud();
     renderAll();
     dealAnimation();
-    startTimer();
+    if (!state.won) startTimer();
     return true;
   }
 
@@ -185,8 +204,13 @@
 
   /* ─── Game flow ─── */
   function newGame(difficulty) {
+    const date = today();
+    const lock = getLock();
+    if (lock && lock.date === date && lock.difficulty !== difficulty) return; // heute schon anders gewählt
+    setLock(difficulty);
+    state.date = date;
     state.difficulty = difficulty;
-    const { puzzle, solution } = Sudoku.generate(difficulty);
+    const { puzzle, solution } = Sudoku.generate(difficulty, `${date}:${difficulty}`);
     state.puzzle = puzzle;
     state.solution = solution;
     state.grid = Sudoku.clone(puzzle);
@@ -383,7 +407,7 @@
     }
     state.won = true;
     stopTimer();
-    clearSave();
+    save();
     // full-board wave sweep, then modal + confetti
     cells.forEach((el) => {
       const r = +el.dataset.r, c = +el.dataset.c;
@@ -391,21 +415,27 @@
         el.classList.remove('wave'); void el.offsetWidth; el.classList.add('wave');
       }, (r + c) * 55);
     });
-    setTimeout(() => {
-      const quips = {
-        easy: 'Gut aufgewärmt.',
-        medium: 'Sauber gelöst.',
-        hard: 'Stark! Das war nicht ohne.',
-        expert: 'Respekt – Expertenniveau.',
-      };
-      const base = quips[state.difficulty] || 'Gut gemacht.';
-      $('#win-quip').textContent = state.mistakes === 0 && state.hintsLeft === 3 ? `${base} Ohne Fehler und ohne Tipps!` : base;
-      $('#win-time').textContent = fmtTime(state.seconds);
-      $('#win-mistakes').textContent = state.mistakes;
-      $('#win-hints').textContent = 3 - state.hintsLeft;
-      showOverlay('#ov-win');
-      confetti();
-    }, 1300);
+    setTimeout(() => showWin(true), 1300);
+  }
+
+  function showWin(withConfetti) {
+    const quips = {
+      easy: 'Gut aufgewärmt.',
+      medium: 'Sauber gelöst.',
+      hard: 'Stark! Das war nicht ohne.',
+      expert: 'Respekt – Expertenniveau.',
+    };
+    const base = quips[state.difficulty] || 'Gut gemacht.';
+    $('#win-quip').textContent = state.mistakes === 0 && state.hintsLeft === 3 ? `${base} Ohne Fehler und ohne Tipps!` : base;
+    $('#win-time').textContent = fmtTime(state.seconds);
+    $('#win-mistakes').textContent = state.mistakes;
+    $('#win-hints').textContent = 3 - state.hintsLeft;
+    // Rätsel von einem früheren Tag gelöst? Dann wartet das heutige noch.
+    const isToday = state.date === today();
+    $('#win-next').textContent = isToday ? "Morgen gibt's neue Sudokus." : 'Das heutige Sudoku wartet schon auf dich.';
+    $('#btn-again').textContent = isToday ? 'Schliessen' : 'Zum heutigen Sudoku';
+    showOverlay('#ov-win');
+    if (withConfetti) confetti();
   }
 
   /* ─── Confetti (canvas particles) ─── */
@@ -490,28 +520,26 @@
     hideOverlay('#ov-pause');
   }
 
-  // «Neues Spiel»: laufendes Spiel pausieren, mit «Abbrechen» zurück
-  function openNew() {
-    const running = state.grid && !state.won;
-    $('#btn-cancel-new').hidden = !running;
-    if (running) state.paused = true;
-    hideOverlay('#ov-pause');
+  // Auswahl des Tagesrätsels; wurde heute schon gewählt, ist nur noch diese Stufe aktiv
+  function openChooser() {
+    $('#today-label').textContent = todayLabel();
+    const lock = getLock();
+    const chosen = lock && lock.date === today() ? lock.difficulty : null;
+    document.querySelectorAll('.diff-btn').forEach((b) => {
+      b.disabled = !!chosen && b.dataset.diff !== chosen;
+    });
     showOverlay('#ov-new');
-  }
-  function cancelNew() {
-    if (!state.grid || state.won) return;
-    hideOverlay('#ov-new');
-    state.paused = false;
   }
 
   /* ─── Wiring ─── */
-  $('#btn-new').addEventListener('click', openNew);
-  $('#btn-cancel-new').addEventListener('click', cancelNew);
   window.addEventListener('pagehide', save);
   document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
   $('#btn-pause').addEventListener('click', pause);
   $('#btn-resume').addEventListener('click', resume);
-  $('#btn-again').addEventListener('click', () => { hideOverlay('#ov-win'); openNew(); });
+  $('#btn-again').addEventListener('click', () => {
+    hideOverlay('#ov-win');
+    if (state.date !== today()) openChooser();
+  });
   $('#btn-undo').addEventListener('click', undo);
   $('#btn-erase').addEventListener('click', erase);
   $('#btn-hint').addEventListener('click', hint);
@@ -531,13 +559,12 @@
     b.addEventListener('click', () => newGame(b.dataset.diff)));
 
   document.addEventListener('keydown', (e) => {
-    if ($('#ov-new').classList.contains('show')) return e.key === 'Escape' ? cancelNew() : undefined;
+    if ($('#ov-new').classList.contains('show')) return;
     if (e.key >= '1' && e.key <= '9') return input(+e.key);
     if (e.key === 'Backspace' || e.key === 'Delete' || e.key === '0') return erase();
     if (e.key === 'n' || e.key === 'N') return $('#btn-notes').click();
     if (e.key === 'u' || e.key === 'U' || (e.key === 'z' && (e.ctrlKey || e.metaKey))) return undo();
     if (e.key === 'h' || e.key === 'H') return hint();
-    if ($('#ov-new').classList.contains('show')) return e.key === 'Escape' ? cancelNew() : undefined;
     if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') return state.paused ? resume() : pause();
     if (e.key.startsWith('Arrow') && state.grid) {
       e.preventDefault();
@@ -557,6 +584,8 @@
   } catch (e) {}
   buildBoard();
   buildPad();
-  if (!restore()) showOverlay('#ov-new');
+  // Laufendes Spiel fortsetzen (auch von gestern); gelöstes von heute: Ergebnis zeigen; sonst Auswahl
+  if (!restore()) openChooser();
+  else if (state.won) state.date === today() ? showWin(false) : openChooser();
   window.__sudoku = { state, input, select };
 })();

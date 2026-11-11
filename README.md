@@ -60,8 +60,14 @@ alle; zum Einschränken die eigene Domain eintragen.
 - Keine externen Anfragen: Space Grotesk liegt lokal in `public/fonts/`
   (SIL Open Font License, `OFL-LICENSE.txt` muss dabei bleiben).
 - Laufendes Spiel wird im Browser gespeichert (`localStorage`, Schlüssel
-  `sudoku-game-v1`) und beim Neuladen fortgesetzt; nach dem Lösen gelöscht.
-- «Neues Spiel» pausiert das laufende Spiel und hat «Abbrechen».
+  `sudoku-game-v2`) und beim Neuladen fortgesetzt.
+- **Sudoku des Tages:** Jeden Tag gibt es 4 Rätsel (Leicht–Experte), für alle
+  gleich (Seed = Datum in Europe/Zurich + Stufe, siehe `Sudoku.generate`).
+  Man wählt eines; die anderen sind bis Mitternacht gesperrt
+  (`localStorage`, Schlüssel `sudoku-day-v1`). Gelöstes Rätsel bleibt sichtbar,
+  ein angefangenes vom Vortag kann man noch fertig spielen.
+  Die Sperre ist nur im Browser: Wer die Website-Daten löscht oder einen
+  anderen Browser nimmt, kann ein weiteres Tagesrätsel wählen.
 
 Nach Änderungen an CSS/JS die `?v=`-Nummer in `index.html` hochzählen,
 damit Browser nicht die alte Version aus dem Cache nehmen.

@@ -246,6 +246,8 @@ header.top {
   transition: border-color .15s ease, background .15s ease;
 }
 .diff-btn:hover { border-color: var(--accent); }
+.diff-btn:disabled { opacity: .35; cursor: not-allowed; border-color: var(--soft-line); }
+.next-note { margin: -8px 0 18px; }
 .diff-btn .dots { color: var(--line); font-size: 11px; letter-spacing: .15em; }
 .diff-btn .dots b { color: var(--accent); }
 

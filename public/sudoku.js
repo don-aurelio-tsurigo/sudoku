@@ -5,10 +5,26 @@
   const SIZE = 9;
   const BOX = 3;
 
-  function shuffled(arr) {
+  // Deterministischer Zufall: gleicher Seed -> gleiches Rätsel (für «Sudoku des Tages»)
+  function seededRandom(seedText) {
+    let h = 1779033703 ^ seedText.length;
+    for (let i = 0; i < seedText.length; i++) {
+      h = Math.imul(h ^ seedText.charCodeAt(i), 3432918353);
+      h = (h << 13) | (h >>> 19);
+    }
+    let a = h >>> 0;
+    return function () { // mulberry32
+      a = (a + 0x6d2b79f5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function shuffled(arr, rnd) {
     const a = arr.slice();
     for (let i = a.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
+      const j = Math.floor(rnd() * (i + 1));
       [a[i], a[j]] = [a[j], a[i]];
     }
     return a;
@@ -45,14 +61,14 @@
     return null;
   }
 
-  function fill(grid) {
+  function fill(grid, rnd) {
     const spot = findEmpty(grid);
     if (!spot) return true;
     const [r, c] = spot;
-    for (const v of shuffled([1, 2, 3, 4, 5, 6, 7, 8, 9])) {
+    for (const v of shuffled([1, 2, 3, 4, 5, 6, 7, 8, 9], rnd)) {
       if (isValid(grid, r, c, v)) {
         grid[r][c] = v;
-        if (fill(grid)) return true;
+        if (fill(grid, rnd)) return true;
         grid[r][c] = 0;
       }
     }
@@ -83,16 +99,18 @@
 
   const CLUES = { easy: 40, medium: 32, hard: 27, expert: 23 };
 
-  function generate(difficulty) {
+  // seed (optional): Text wie "2026-11-11:medium" -> immer dasselbe Rätsel
+  function generate(difficulty, seed) {
+    const rnd = seed ? seededRandom(String(seed)) : Math.random;
     const solution = emptyGrid();
-    fill(solution);
+    fill(solution, rnd);
 
     const puzzle = clone(solution);
     const targetClues = CLUES[difficulty] || CLUES.medium;
     let clues = SIZE * SIZE;
 
     // Dig symmetric pairs while keeping the solution unique.
-    const cells = shuffled(Array.from({ length: 81 }, (_, i) => i));
+    const cells = shuffled(Array.from({ length: 81 }, (_, i) => i), rnd);
     for (const idx of cells) {
       if (clues <= targetClues) break;
       const r = Math.floor(idx / SIZE);
