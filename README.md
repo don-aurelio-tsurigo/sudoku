@@ -33,7 +33,7 @@ npm run dev        # http://127.0.0.1:8789
 ```bash
 export PATH="$PWD/.tools/node/bin:$PATH"
 npx wrangler login     # einmalig
-npm run deploy         # -> https://sudoku.<account>.workers.dev
+npm run deploy         # manuell; normal deployt Cloudflare bei jedem Push auf main -> https://sudoku.elio-donauer.workers.dev
 ```
 
 Eigene Domain (z.B. `sudoku.tsri.ch`): im Cloudflare-Dashboard beim Worker
@@ -42,7 +42,7 @@ unter *Settings → Domains & Routes*.
 ## Einbetten
 
 ```html
-<iframe src="https://sudoku.<account>.workers.dev/" title="Sudoku" loading="lazy"
+<iframe src="https://sudoku.elio-donauer.workers.dev/" title="Sudoku" loading="lazy"
         style="width:100%;max-width:480px;height:740px;border:0;display:block;margin:0 auto"></iframe>
 ```
 
